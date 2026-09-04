@@ -49,13 +49,16 @@
         lamps[c] = lamp;
         lampRow.appendChild(lamp);
 
+        const post = document.createElement("div");
+        post.className = "key-post";
         const key = document.createElement("button");
         key.className = "key";
         key.textContent = c;
         key.type = "button";
         key.addEventListener("click", () => pressKey(c));
-        keys[c] = key;
-        keyRow.appendChild(key);
+        post.appendChild(key);
+        keys[c] = post;
+        keyRow.appendChild(post);
       }
       $("lampboard").appendChild(lampRow);
       $("keyboard").appendChild(keyRow);
@@ -80,6 +83,46 @@
     }
   }
 
+  // ---- plug pairs: single source of truth, mirrored to jacks and the text field ----
+
+  function pairsToText(pairs) {
+    return pairs.map((p) => p[0] + p[1]).join(" ");
+  }
+
+  function parsePlugText(text) {
+    const tokens = text.toUpperCase().trim().split(/\s+/).filter(Boolean);
+    const used = new Set();
+    const pairs = [];
+    for (const t of tokens) {
+      if (!/^[A-Z]{1,2}$/.test(t)) return { pairs: null, error: "잘못된 입력: " + t };
+      if (t.length === 1) continue;
+      if (t[0] === t[1]) return { pairs: null, error: "같은 글자끼리는 연결할 수 없습니다: " + t };
+      for (const c of t) {
+        if (used.has(c)) return { pairs: null, error: "글자가 중복 사용되었습니다: " + c };
+        used.add(c);
+      }
+      pairs.push([t[0], t[1]]);
+    }
+    if (pairs.length > MAX_PLUGS) return { pairs: null, error: "플러그보드는 최대 " + MAX_PLUGS + "쌍까지 가능합니다." };
+    return { pairs: pairs, error: null };
+  }
+
+  function setPlugError(msg) {
+    $("plugError").textContent = msg || "";
+  }
+
+  function setPairs(pairs, fromText) {
+    const changed = pairsToText(pairs) !== pairsToText(plugPairs);
+    plugPairs = pairs.map((p) => [p[0], p[1]]);
+    pendingJack = null;
+    if (!fromText) {
+      $("plugText").value = pairsToText(plugPairs);
+      setPlugError("");
+    }
+    renderPlugboard();
+    if (changed) resetMachine();
+  }
+
   function pairIndexOf(letter) {
     return plugPairs.findIndex((p) => p[0] === letter || p[1] === letter);
   }
@@ -88,34 +131,57 @@
     if (pairIndexOf(letter) !== -1) return;
     if (pendingJack === letter) {
       pendingJack = null;
+      renderPlugboard();
     } else if (pendingJack === null) {
       if (plugPairs.length >= MAX_PLUGS) return;
       pendingJack = letter;
+      renderPlugboard();
     } else {
-      plugPairs.push([pendingJack, letter]);
-      pendingJack = null;
-      resetMachine();
+      setPairs(plugPairs.concat([[pendingJack, letter]]), false);
     }
-    renderPlugboard();
   }
 
   function removePair(index) {
-    plugPairs.splice(index, 1);
-    pendingJack = null;
-    resetMachine();
-    renderPlugboard();
+    setPairs(plugPairs.filter((_, i) => i !== index), false);
   }
 
-  function jackCenter(letter, base) {
-    const r = jacks[letter].getBoundingClientRect();
-    return { x: r.left - base.left + r.width / 2, y: r.top - base.top + r.height / 2 };
+  function clearPlugboard() {
+    setPairs([], false);
+  }
+
+  function onPlugTextInput() {
+    const r = parsePlugText($("plugText").value);
+    setPlugError(r.error);
+    if (!r.error) setPairs(r.pairs, true);
+  }
+
+  function onPlugTextChange() {
+    const r = parsePlugText($("plugText").value);
+    if (!r.error) $("plugText").value = pairsToText(plugPairs);
+  }
+
+  // ---- cables: layout coordinates (offset*), so CSS transforms on ancestors do not matter ----
+
+  function localPos(el, root) {
+    let x = 0, y = 0;
+    while (el && el !== root) {
+      x += el.offsetLeft;
+      y += el.offsetTop;
+      el = el.offsetParent;
+    }
+    return { x: x, y: y };
+  }
+
+  function jackCenter(letter) {
+    const jack = jacks[letter];
+    const p = localPos(jack, $("plugboard"));
+    return { x: p.x + jack.offsetWidth / 2, y: p.y + jack.offsetHeight / 2 };
   }
 
   function cablePath(a, b) {
     const sag = 26 + Math.abs(a.x - b.x) * 0.12;
-    const c1 = { x: a.x, y: a.y + sag };
-    const c2 = { x: b.x, y: b.y + sag };
-    return "M" + a.x + "," + a.y + " C" + c1.x + "," + c1.y + " " + c2.x + "," + c2.y + " " + b.x + "," + b.y;
+    return "M" + a.x + "," + a.y +
+      " C" + a.x + "," + (a.y + sag) + " " + b.x + "," + (b.y + sag) + " " + b.x + "," + b.y;
   }
 
   function svgEl(name, attrs) {
@@ -127,10 +193,9 @@
   function renderCables() {
     const svg = $("cables");
     while (svg.firstChild) svg.removeChild(svg.firstChild);
-    const base = svg.getBoundingClientRect();
     plugPairs.forEach((pair, index) => {
-      const a = jackCenter(pair[0], base);
-      const b = jackCenter(pair[1], base);
+      const a = jackCenter(pair[0]);
+      const b = jackCenter(pair[1]);
       const d = cablePath(a, b);
       const g = svgEl("g", { class: "cable" });
       g.appendChild(svgEl("path", { class: "cable-shadow", d: d }));
@@ -155,6 +220,8 @@
     $("plugCount").textContent = plugPairs.length + " / " + MAX_PLUGS;
     renderCables();
   }
+
+  // ---- machine ----
 
   function readSettings() {
     return {
@@ -183,13 +250,19 @@
     $("outputText").textContent = outputText;
   }
 
+  function renderReflector(reflector_id) {
+    $("ukw").textContent = reflector_id;
+  }
+
   function resetMachine() {
     inputText = "";
     outputText = "";
     reset();
     renderLamp(null);
     renderTexts();
-    renderWindows(readSettings().window_set);
+    const s = readSettings();
+    renderWindows(s.window_set);
+    renderReflector(s.reflector_id);
   }
 
   function pressKey(letter) {
@@ -208,19 +281,14 @@
     setTimeout(() => key.classList.remove("pressed"), 100);
   }
 
-  function clearPlugboard() {
-    plugPairs = [];
-    pendingJack = null;
-    renderPlugboard();
-  }
-
   function bindEvents() {
-    $("settings").addEventListener("change", resetMachine);
-    $("resetBtn").addEventListener("click", resetMachine);
-    $("clearPlugsBtn").addEventListener("click", () => {
-      clearPlugboard();
-      resetMachine();
+    $("settings").addEventListener("change", (e) => {
+      if (e.target.tagName === "SELECT") resetMachine();
     });
+    $("resetBtn").addEventListener("click", resetMachine);
+    $("clearPlugsBtn").addEventListener("click", clearPlugboard);
+    $("plugText").addEventListener("input", onPlugTextInput);
+    $("plugText").addEventListener("change", onPlugTextChange);
     window.addEventListener("resize", renderCables);
 
     document.addEventListener("keydown", (e) => {
