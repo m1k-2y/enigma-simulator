@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enigeuma</title>
+<style>
+  :root {
+    --bg: #1b1b1b;
+    --panel: #2a2a2a;
+    --border: #444;
+    --text: #e8e8e8;
+    --muted: #999;
+    --lamp-off: #3a3520;
+    --lamp-on: #ffd84d;
+    --key: #333;
+    --key-active: #555;
+    --accent: #c9a227;
+    --error: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 20px;
+  }
+  h1 {
+    margin: 0 0 16px;
+    font-size: 22px;
+    letter-spacing: 4px;
+    color: var(--accent);
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 20px;
+    max-width: 1100px;
+  }
+  @media (max-width: 800px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .panel h2 {
+    margin: 0 0 12px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+  }
+  .settings-row {
+    display: grid;
+    grid-template-columns: 70px 1fr 1fr 1fr;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .settings-row label { font-size: 13px; color: var(--muted); }
+  select, input[type="text"] {
+    width: 100%;
+    background: #1e1e1e;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 6px;
+    font-size: 14px;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+  }
+  .settings-single {
+    display: grid;
+    grid-template-columns: 70px 1fr;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .hint { font-size: 12px; color: var(--muted); margin: 4px 0 0; }
+  .error { font-size: 12px; color: var(--error); margin: 6px 0 0; min-height: 16px; }
+  button.reset {
+    width: 100%;
+    margin-top: 10px;
+    padding: 8px;
+    background: var(--key);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  button.reset:hover { background: var(--key-active); }
+
+  .windows {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+  .window {
+    width: 64px;
+    height: 80px;
+    background: #0e0e0e;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    color: var(--accent);
+    box-shadow: inset 0 0 12px #000;
+  }
+  .window-label {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .board {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .board-row { display: flex; gap: 8px; }
+  .lamp, .key {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 18px;
+    font-weight: 600;
+    user-select: none;
+  }
+  .lamp {
+    background: var(--lamp-off);
+    color: #7a7040;
+    border: 1px solid #55502a;
+    transition: background 0.05s, color 0.05s, box-shadow 0.05s;
+  }
+  .lamp.on {
+    background: var(--lamp-on);
+    color: #222;
+    box-shadow: 0 0 18px var(--lamp-on);
+  }
+  .key {
+    background: var(--key);
+    color: var(--text);
+    border: 1px solid #111;
+    border-bottom: 3px solid #111;
+    cursor: pointer;
+  }
+  .key:hover { background: var(--key-active); }
+  .key:active, .key.pressed { transform: translateY(2px); border-bottom-width: 1px; }
+  .key:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .texts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .text-box {
+    background: #0e0e0e;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+    min-height: 90px;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 16px;
+    letter-spacing: 2px;
+    word-break: break-all;
+    white-space: pre-wrap;
+  }
+  .text-box .label {
+    display: block;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+    font-family: system-ui, sans-serif;
+  }
+  .text-box.output { color: var(--accent); }
+</style>
+</head>
+<body>
+<h1>ENIGEUMA</h1>
+<div class="layout">
+  <div class="panel" id="settings">
+    <h2>설정</h2>
+    <div class="settings-row">
+      <label></label>
+      <span class="hint">좌</span><span class="hint">중</span><span class="hint">우</span>
+    </div>
+    <div class="settings-row">
+      <label>로터</label>
+      <select id="rotor0"></select>
+      <select id="rotor1"></select>
+      <select id="rotor2"></select>
+    </div>
+    <div class="settings-row">
+      <label>링</label>
+      <select id="ring0"></select>
+      <select id="ring1"></select>
+      <select id="ring2"></select>
+    </div>
+    <div class="settings-row">
+      <label>창</label>
+      <select id="win0"></select>
+      <select id="win1"></select>
+      <select id="win2"></select>
+    </div>
+    <div class="settings-single">
+      <label>반사판</label>
+      <select id="reflector">
+        <option value="B">UKW-B</option>
+        <option value="C">UKW-C</option>
+      </select>
+    </div>
+    <div class="settings-single">
+      <label>플러그</label>
+      <input type="text" id="plugboard" placeholder="AV BS CD" autocomplete="off" spellcheck="false">
+    </div>
+    <p class="hint">두 글자씩 공백으로 구분, 최대 10쌍</p>
+    <p class="error" id="error"></p>
+    <button class="reset" id="resetBtn">리셋</button>
+  </div>
+
+  <div class="panel">
+    <h2>기계</h2>
+    <div class="windows">
+      <div>
+        <div class="window" id="w0">A</div>
+        <div class="window-label">좌</div>
+      </div>
+      <div>
+        <div class="window" id="w1">A</div>
+        <div class="window-label">중</div>
+      </div>
+      <div>
+        <div class="window" id="w2">A</div>
+        <div class="window-label">우</div>
+      </div>
+    </div>
+
+    <div class="board" id="lampboard"></div>
+    <div class="board" id="keyboard"></div>
+
+    <div class="texts">
+      <div class="text-box"><span class="label">입력</span><span id="inputText"></span></div>
+      <div class="text-box output"><span class="label">출력</span><span id="outputText"></span></div>
+    </div>
+  </div>
+</div>
+
+<script src="core.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>
