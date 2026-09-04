@@ -3,15 +3,18 @@
   const ROWS = ["QWERTZUIO", "ASDFGHJK", "PYXCVBNML"];
   const ROTOR_NAMES = { 1: "I", 2: "II", 3: "III", 4: "IV", 5: "V" };
   const MAX_PLUGS = 10;
+  const SVG_NS = "http://www.w3.org/2000/svg";
 
   const $ = (id) => document.getElementById(id);
 
   let inputText = "";
   let outputText = "";
-  let settingsValid = true;
+  let plugPairs = [];
+  let pendingJack = null;
 
   const lamps = {};
   const keys = {};
+  const jacks = {};
 
   function fillSelect(el, options) {
     for (const [value, label] of options) {
@@ -59,29 +62,98 @@
     }
   }
 
-  function parsePlugboard(text) {
-    const tokens = text.toUpperCase().trim().split(/\s+/).filter(Boolean);
-    if (tokens.length > MAX_PLUGS) {
-      throw new Error("플러그보드는 최대 " + MAX_PLUGS + "쌍까지 가능합니다.");
+  function buildPlugboard() {
+    for (const row of ROWS) {
+      const jackRow = document.createElement("div");
+      jackRow.className = "jack-row";
+      for (const c of row) {
+        const jack = document.createElement("button");
+        jack.className = "jack";
+        jack.type = "button";
+        jack.dataset.letter = c;
+        jack.textContent = c;
+        jack.addEventListener("click", () => clickJack(c));
+        jacks[c] = jack;
+        jackRow.appendChild(jack);
+      }
+      $("jacks").appendChild(jackRow);
     }
-    const used = new Set();
-    const pairs = [];
-    for (const t of tokens) {
-      if (!/^[A-Z]{2}$/.test(t)) {
-        throw new Error("잘못된 플러그 쌍: " + t);
-      }
-      if (t[0] === t[1]) {
-        throw new Error("같은 글자끼리는 연결할 수 없습니다: " + t);
-      }
-      for (const c of t) {
-        if (used.has(c)) {
-          throw new Error("글자가 중복 사용되었습니다: " + c);
-        }
-        used.add(c);
-      }
-      pairs.push([t[0], t[1]]);
+  }
+
+  function pairIndexOf(letter) {
+    return plugPairs.findIndex((p) => p[0] === letter || p[1] === letter);
+  }
+
+  function clickJack(letter) {
+    if (pairIndexOf(letter) !== -1) return;
+    if (pendingJack === letter) {
+      pendingJack = null;
+    } else if (pendingJack === null) {
+      if (plugPairs.length >= MAX_PLUGS) return;
+      pendingJack = letter;
+    } else {
+      plugPairs.push([pendingJack, letter]);
+      pendingJack = null;
+      resetMachine();
     }
-    return pairs;
+    renderPlugboard();
+  }
+
+  function removePair(index) {
+    plugPairs.splice(index, 1);
+    pendingJack = null;
+    resetMachine();
+    renderPlugboard();
+  }
+
+  function jackCenter(letter, base) {
+    const r = jacks[letter].getBoundingClientRect();
+    return { x: r.left - base.left + r.width / 2, y: r.top - base.top + r.height / 2 };
+  }
+
+  function cablePath(a, b) {
+    const sag = 26 + Math.abs(a.x - b.x) * 0.12;
+    const c1 = { x: a.x, y: a.y + sag };
+    const c2 = { x: b.x, y: b.y + sag };
+    return "M" + a.x + "," + a.y + " C" + c1.x + "," + c1.y + " " + c2.x + "," + c2.y + " " + b.x + "," + b.y;
+  }
+
+  function svgEl(name, attrs) {
+    const el = document.createElementNS(SVG_NS, name);
+    for (const k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+
+  function renderCables() {
+    const svg = $("cables");
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    const base = svg.getBoundingClientRect();
+    plugPairs.forEach((pair, index) => {
+      const a = jackCenter(pair[0], base);
+      const b = jackCenter(pair[1], base);
+      const d = cablePath(a, b);
+      const g = svgEl("g", { class: "cable" });
+      g.appendChild(svgEl("path", { class: "cable-shadow", d: d }));
+      g.appendChild(svgEl("path", { class: "cable-line", d: d }));
+      g.appendChild(svgEl("circle", { class: "plug", cx: a.x, cy: a.y, r: 6 }));
+      g.appendChild(svgEl("circle", { class: "plug", cx: b.x, cy: b.y, r: 6 }));
+      const hit = svgEl("path", { class: "cable-hit", d: d });
+      hit.addEventListener("click", () => removePair(index));
+      g.appendChild(hit);
+      svg.appendChild(g);
+    });
+  }
+
+  function renderPlugboard() {
+    const full = plugPairs.length >= MAX_PLUGS;
+    for (const c in jacks) {
+      const used = pairIndexOf(c) !== -1;
+      jacks[c].classList.toggle("used", used);
+      jacks[c].classList.toggle("pending", pendingJack === c);
+      jacks[c].disabled = used || (full && pendingJack === null);
+    }
+    $("plugCount").textContent = plugPairs.length + " / " + MAX_PLUGS;
+    renderCables();
   }
 
   function readSettings() {
@@ -90,14 +162,8 @@
       ring_set: [$("ring0").value, $("ring1").value, $("ring2").value],
       window_set: [$("win0").value, $("win1").value, $("win2").value],
       reflector_id: $("reflector").value,
-      board_set: parsePlugboard($("plugboard").value),
+      board_set: plugPairs.map((p) => [p[0], p[1]]),
     };
-  }
-
-  function setError(msg) {
-    $("error").textContent = msg;
-    settingsValid = !msg;
-    for (const c in keys) keys[c].disabled = !settingsValid;
   }
 
   function renderWindows(window_set) {
@@ -123,24 +189,11 @@
     reset();
     renderLamp(null);
     renderTexts();
-    try {
-      const s = readSettings();
-      setError("");
-      renderWindows(s.window_set);
-    } catch (e) {
-      setError(e.message);
-    }
+    renderWindows(readSettings().window_set);
   }
 
   function pressKey(letter) {
-    if (!settingsValid) return;
-    let s;
-    try {
-      s = readSettings();
-    } catch (e) {
-      setError(e.message);
-      return;
-    }
+    const s = readSettings();
     inputText += letter;
     outputText = encrypt(inputText, s.rotor_set, s.ring_set, s.window_set, s.reflector_id, s.board_set);
     renderWindows(s.window_set);
@@ -155,10 +208,20 @@
     setTimeout(() => key.classList.remove("pressed"), 100);
   }
 
+  function clearPlugboard() {
+    plugPairs = [];
+    pendingJack = null;
+    renderPlugboard();
+  }
+
   function bindEvents() {
     $("settings").addEventListener("change", resetMachine);
-    $("plugboard").addEventListener("input", resetMachine);
     $("resetBtn").addEventListener("click", resetMachine);
+    $("clearPlugsBtn").addEventListener("click", () => {
+      clearPlugboard();
+      resetMachine();
+    });
+    window.addEventListener("resize", renderCables);
 
     document.addEventListener("keydown", (e) => {
       const tag = e.target.tagName;
@@ -175,6 +238,8 @@
 
   buildSettings();
   buildBoards();
+  buildPlugboard();
   bindEvents();
+  renderPlugboard();
   resetMachine();
 })();
