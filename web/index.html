@@ -475,87 +475,118 @@
 
   /* ---- rotor bay: highest step at the back of the body top ---- */
   .rotor-bay {
+    position: relative;
     height: 104px;
     margin: 0 0 14px;
     padding: 10px 16px 8px 32px;
     display: flex;
     align-items: center;
-    gap: 34px;
+    gap: 26px;
     background: linear-gradient(180deg, #0a0a0a, #161616 50%, #0c0c0c);
     border: 1px solid #000;
     border-radius: 3px;
     box-shadow: inset 0 0 26px rgba(0,0,0,0.95), inset 0 1px 0 rgba(255,255,255,0.08);
   }
-  /* reflector (UKW): fixed, thinner than a rotor, smooth face, no window; letter engraved */
+  /* reflector (UKW): fixed thin plate left of the slits, smooth face, no window; letter engraved */
   .ukw {
-    width: 30px;
-    height: 34px;
-    margin-right: -8px;
+    width: 20px;
+    height: 62px;
+    margin-right: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: var(--mono);
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
     color: #2a2b28;
     text-shadow: 0 1px 0 rgba(255,255,255,0.35), 0 -1px 0 rgba(0,0,0,0.9);
     background:
-      radial-gradient(circle at 5px 5px, #0a0a0a 0 1.2px, transparent 1.8px),
-      radial-gradient(circle at 25px 29px, #0a0a0a 0 1.2px, transparent 1.8px),
-      linear-gradient(180deg, #8c8f8a, #5d605b 45%, #3f423e 55%, #6a6d68);
+      radial-gradient(circle at 10px 6px, #0a0a0a 0 1.2px, transparent 1.8px),
+      radial-gradient(circle at 10px 56px, #0a0a0a 0 1.2px, transparent 1.8px),
+      linear-gradient(90deg, #8c8f8a, #5d605b 45%, #3f423e 55%, #6a6d68);
     border: 1px solid #000;
     border-radius: 3px;
     box-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.35),
-      inset 0 -1px 0 rgba(0,0,0,0.7),
+      inset 1px 0 0 rgba(255,255,255,0.35),
+      inset -1px 0 0 rgba(0,0,0,0.7),
       0 1px 0 rgba(255,255,255,0.08),
       0 2px 4px rgba(0,0,0,0.9);
   }
+  /*
+   * rotor = narrow slit cut into the case. Inside the same slit: the small letter window at the far end,
+   * and below it the serrated rim of the wheel (the rest of the disc is hidden inside the case).
+   */
   .rotor {
+    position: relative;
+    width: 30px;
+    height: 80px;
+    padding: 4px 5px 5px;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
+    background: linear-gradient(180deg, #000, #090909 18%, #090909 82%, #000);
+    border-radius: 3px;
+    box-shadow:
+      inset 0 3px 6px rgba(0,0,0,1),
+      inset 0 -2px 4px rgba(0,0,0,0.95),
+      inset 3px 0 4px rgba(0,0,0,0.95),
+      inset -3px 0 4px rgba(0,0,0,0.95),
+      0 1px 0 rgba(255,255,255,0.08);
   }
   .window {
-    width: 17px;
-    height: 20px;
+    position: static;
+    z-index: 1;
+    width: 20px;
+    height: 18px;
+    margin: 0;
+    flex: none;
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: var(--mono);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     line-height: 1;
     color: #111;
-    background: #e9e3d0;
-    border: 1px solid #000;
-    border-radius: 1px;
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.8), 0 0 0 1px var(--chrome-3), 0 1px 0 1px var(--chrome-2);
+    background: #ddd6c0;
+    border: none;
+    border-radius: 2px;
+    box-shadow:
+      inset 0 2px 3px rgba(0,0,0,0.85),
+      inset 1px 0 1px rgba(0,0,0,0.5),
+      inset -1px 0 1px rgba(0,0,0,0.5),
+      0 0 0 1px rgba(0,0,0,0.9);
   }
+  /* the visible sliver of the wheel: a narrow band with fine teeth across it, curving away at both ends */
   .slot {
-    width: 84px;
-    height: 34px;
-    padding: 2px;
-    background: #050505;
-    border-radius: 4px;
-    box-shadow: inset 0 2px 5px rgba(0,0,0,1), 0 1px 0 rgba(255,255,255,0.08);
+    flex: 1;
+    width: 16px;
+    padding: 0;
+    background: transparent;
+    border-radius: 2px;
+    box-shadow: none;
   }
-  /* knurled thumbwheel: 2px pitch = 40 fine teeth across the 80px drum, light cylinder shading on top */
   .drum {
     width: 100%;
     height: 100%;
-    border-radius: 4px;
+    border-radius: 2px;
     background:
-      linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 70%, rgba(0,0,0,0.55) 100%),
-      repeating-linear-gradient(90deg, #f2f3ef 0 1px, #1a1b19 1px 2px);
-    box-shadow: inset 0 0 3px rgba(0,0,0,0.9);
+      linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.3) 20%, rgba(255,255,255,0.14) 50%, rgba(0,0,0,0.3) 80%, rgba(0,0,0,0.9) 100%),
+      linear-gradient(90deg, rgba(0,0,0,0.55), rgba(0,0,0,0) 28%, rgba(0,0,0,0) 72%, rgba(0,0,0,0.55)),
+      repeating-linear-gradient(180deg, #d4d6d1 0 1.2px, #3a3c39 1.2px 3px);
+    box-shadow: inset 0 0 2px rgba(0,0,0,0.9);
   }
   .bay-plate {
-    margin-left: auto;
-    padding: 4px 8px;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 84px;
+    padding: 3px 5px;
     font-family: var(--mono);
-    font-size: 8px;
-    line-height: 1.3;
+    font-size: 7px;
+    line-height: 1.25;
     color: #1d1d1d;
     text-align: center;
     background: linear-gradient(180deg, #d5d6d1, #a3a5a0);
@@ -563,7 +594,7 @@
     border-radius: 2px;
     box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,0.8);
   }
-  .bay-plate b { display: block; font-size: 11px; letter-spacing: 1px; }
+  .bay-plate b { display: block; font-size: 10px; letter-spacing: 1px; }
 
   /* ---- tiers on the body top ---- */
   .tier {
