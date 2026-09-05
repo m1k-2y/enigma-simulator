@@ -257,6 +257,8 @@ python -m pytest -v
 
 ```text
 enigma-simulator/
+├──assets/
+|   ├── screenshot.png
 ├── docs/
 │   ├── core.js             # JavaScript port of the Enigma core logic
 │   ├── index.html          # Entry point for the browser simulator
@@ -265,7 +267,7 @@ enigma-simulator/
 │   ├── core.py             # Rotor, reflector, plugboard, and stepping logic
 │   └── main.py             # Encryption flow and command-line interface
 ├── test/
-│   └── test_enigeuma.py    # pytest tests for encryption and round-trip verification
+│   └── test_enigma.py    # pytest tests for encryption and round-trip verification
 ├── .gitignore
 └── README.md
 ```
