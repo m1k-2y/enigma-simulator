@@ -1,5 +1,10 @@
 # ENIGMA-SIMULATOR
 
+**[▶ Live Demo](https://m1k-2y.github.io/enigma-simulator/)**
+
+![Enigma Simulator](assets/screenshot.png)
+
+
 ## Overview
 
 This project implements ENIGMA M3 used by german heer.
